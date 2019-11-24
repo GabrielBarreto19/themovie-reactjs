@@ -1,61 +1,68 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { Component } from 'react';
 import api from '../../services/api';
+import { connect } from 'react-redux';
 import Header from '../Components/Header';
-import { Container, Input, Box, Side, Bar, Title, Text, Date, Details, Button, Pagination } from './styles';
+import { Input, Pagination, Page } from './styles';
+import ListMovie from './ListMovie';
 
-export default function Main({}) {
+class Main extends Component {
+  state = {
+    movie: [],
+    todosPerPage: 5,
+    totalPages: 0, 
+    movieStart: 0, 
+    movieEnd: 5
+  };
 
-  async function handleFindMovie(event) {
-    console.log("OOITI")
-    let text = event.targe.value;
+  async handleFindMovie (e) {
+    let text = e.target.value;
 
     const response = await api.get(
       `/3/search/movie?api_key=cc586edfff730870f0169b310acda186&query=${text}`
     );
-
-   console.log(response.data)
-
+    
+   this.setState({movie: response.data.results, page: response.data.total_pages})
   }
 
-  return (
-    <>
-    <Container>
-      <Header />
-        <Input>
-          <input type="text" onChange={() => handleFindMovie} placeholder="Busque um filme por nome, ano ou gênero..." />
-        </Input>
-        <Box>
-          <Side>
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQbvuIR5-_JG_AvbxtplOA5fS88vvmog-0PBaSzvUf-xFtN6eDc" alt="screen" />
-          </Side>
-          <Bar>
-            <Title>
-              <strong>Thor Ragnarok</strong>
-            </Title>
-            <Details>
-              <Date>
-                <span>25/10/2018</span>
-              </Date>
-              <Text>
-                <span>A Imagem Filmes é uma empresa nacional que atua no mercado de entretenimento do país como uma distribuidora de filmes independentes, oferece grande variedade e produções com qualidade, vindas dos quatro cantos do mundo, atuando nos segmentos de cinema, tv e home vídeo</span>
-              </Text>
-              <Button>
-                <button onClick={() => handleFindMovie} type="button">Ação</button>
-                <button type="button">Aventura</button>
-                <button type="button">Fantasia</button>
-              </Button>
-            </Details>
-          </Bar>
-        </Box>
-        <Pagination>
-          <span>1</span>
-          <span>2</span>
-          <span>3</span>
-          <span>4</span>
-          <span>5</span>
-        </Pagination>
-      </Container>
-    </>
-  );
+  handleClick(e, page) {
+    const movieEnd = page * this.state.todosPerPage;
+    this.setState({
+      movieEnd: movieEnd
+    });
+    const movieStart = movieEnd - this.state.todosPerPage;
+     this.setState({
+      movieStart: movieStart
+    });
+  }
+
+  render(){
+    const { movie, todosPerPage,movieStart, movieEnd } = this.state;
+    const { dispatch } = this.props;
+
+    let currentTodos = movie.slice(movieStart, movieEnd);
+
+    const pageNumbers = [];
+    for (let i = 1; i <= Math.ceil(movie.length / todosPerPage); i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <>
+      <Page>
+        <Header />
+          <Input>
+            <input type="text" onChange={e => this.handleFindMovie(e)} placeholder="Busque um filme por nome, ano ou gênero..." />
+          </Input>
+            {currentTodos.map(post => <ListMovie key={post.id} data={post} dispatch={dispatch} />)}
+          <Pagination>
+          {pageNumbers.map(number => (
+             <span onClick={e => this.handleClick(e,number)} key={number}>{number}</span>
+            ))}
+          </Pagination>
+        </Page>
+      </>
+    );
+  }
 }
+
+export default connect()(Main)
